@@ -2,6 +2,12 @@
 
 Sistema distribuido de ingesta de órdenes con **FastAPI**, **Postgres**, y **Redis**.
 
+# Equipot de trabajo
+- Iñigo Quintana Delgadillo
+- Marco Uriel Castañeda Ávila
+- David André Acosta Ávila
+
+
 ## Arquitectura
 
 ### Diagrama de componentes
