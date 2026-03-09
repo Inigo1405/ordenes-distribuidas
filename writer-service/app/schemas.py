@@ -9,3 +9,4 @@ class InternalOrder(BaseModel):
     order_id: str
     customer: str
     items: List[Item]
+    created_at: str
