@@ -34,8 +34,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      writer-service:
-        condition: service_started
+      rabbitmq:
+        condition: service_healthy
 
   writer-service:
     build: ./writer-service
@@ -47,6 +47,26 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" # comunicación entre servicios
+      - "15672:15672" # panel web
+    env_file: .env
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      retries: 5
+    
 volumes:
   pg_data:
+  rabbitmq_data:
