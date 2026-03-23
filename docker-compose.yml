@@ -1,7 +1,9 @@
 version: "3.9"
 
 services:
+  # --- Base de datos Relacional ---
   postgres:
+    container_name: DB_Inventory
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -16,6 +18,24 @@ services:
       interval: 5s
       retries: 5
 
+  # --- Base de datos de Notificaciones ---
+  postgres-notifications:
+    container_name: DB_Notification
+    image: postgres:16-alpine
+    enviroment:
+      POSTGRES_USER: ${NOTIFICATION_DB_USER}
+      POSTGRES_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
+      POSTGRES_DB: ${NOTIFICATION_DB_NAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_notification_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NOTIFICATION_DB_USER} -d ${NOTIFICATION_DB_NAME}"]
+      interval: 5s
+      retries: 5
+
+  #  --- Caché de estado ---
   redis:
     image: redis:7-alpine
     ports:
@@ -37,6 +57,8 @@ services:
       rabbitmq:
         condition: service_healthy
 
+
+  # --- Servicios del sistema ---
   writer-service:
     build: ./writer-service
     ports:
@@ -45,17 +67,28 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      postgres-notifications:
+        condition: service_healthy
       redis:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
+  inventory-service:
+    container_name: inventory-service
+    build: ./inventory-service
+
+  notification-service: 
+    container_name: notification-service
+    build: ./notification-service
+
+
   rabbitmq:
-    image: rabbitmq:3-management
     container_name: rabbitmq
+    image: rabbitmq:3-management
     ports:
-      - "5672:5672" # comunicación entre servicios
-      - "15672:15672" # panel web
+      - "5672:5672"     # comunicación entre servicios
+      - "15672:15672"   # panel web
     env_file: .env
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
@@ -69,4 +102,5 @@ services:
     
 volumes:
   pg_data:
+  pg_notification_data:
   rabbitmq_data:
