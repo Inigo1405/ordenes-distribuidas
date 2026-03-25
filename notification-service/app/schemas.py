@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 class InternalNotification(BaseModel):
     order_id: str
@@ -6,4 +7,4 @@ class InternalNotification(BaseModel):
     event_type: str
     message: str
     reason: str | None = None
-    created_at: str
+    created_at: datetime

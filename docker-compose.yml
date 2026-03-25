@@ -35,6 +35,22 @@ services:
       interval: 5s
       retries: 5
 
+  postgres-inventory:
+    container_name: DB_Inventory_2
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${INVENTORY_DB_USER}
+      POSTGRES_PASSWORD: ${INVENTORY_DB_PASSWORD}
+      POSTGRES_DB: ${INVENTORY_DB_NAME}
+    ports:
+      - "5434:5432"
+    volumes:
+      - pg_inventory_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${INVENTORY_DB_USER} -d ${INVENTORY_DB_NAME}"]
+      interval: 5s
+      retries: 5
+
   #  --- Caché de estado ---
   redis:
     image: redis:7-alpine
@@ -76,14 +92,20 @@ services:
     container_name: inventory-service
     build: ./inventory-service
     env_file: .env
-
+    ports:
+      - "8002:8002"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres-inventory:
+        condition: service_healthy
 
   notification-service: 
     container_name: notification-service
     build: ./notification-service
     env_file: .env
     ports:
-      - "8002:8002"
+      - "8003:8003"
     depends_on:
       postgres-notifications:
         condition: service_healthy
@@ -112,4 +134,5 @@ services:
 volumes:
   pg_data:
   pg_notification_data:
+  pg_inventory_data:
   rabbitmq_data:
