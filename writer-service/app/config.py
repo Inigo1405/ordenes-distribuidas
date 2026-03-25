@@ -8,3 +8,5 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+
+RABBIT_URL = os.getenv("RABBIT_URL")

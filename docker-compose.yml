@@ -22,7 +22,7 @@ services:
   postgres-notifications:
     container_name: DB_Notification
     image: postgres:16-alpine
-    enviroment:
+    environment:
       POSTGRES_USER: ${NOTIFICATION_DB_USER}
       POSTGRES_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
       POSTGRES_DB: ${NOTIFICATION_DB_NAME}
@@ -67,8 +67,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      postgres-notifications:
-        condition: service_healthy
       redis:
         condition: service_healthy
       rabbitmq:
@@ -77,15 +75,25 @@ services:
   inventory-service:
     container_name: inventory-service
     build: ./inventory-service
+    env_file: .env
+
 
   notification-service: 
     container_name: notification-service
     build: ./notification-service
+    env_file: .env
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres-notifications:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 
   rabbitmq:
     container_name: rabbitmq
-    image: rabbitmq:3-management
+    image: rabbitmq:3.13-management
     ports:
       - "5672:5672"     # comunicación entre servicios
       - "15672:15672"   # panel web
@@ -97,7 +105,8 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 5s
+      interval: 10s
+      timeout: 5s
       retries: 5
     
 volumes:

@@ -1,30 +1,20 @@
-from fastapi import FastAPI, Header
+import asyncio
+import logging
 
-from .schemas import InternalOrder
-from .redis_client import redis_client
-from .db import SessionLocal, engine
-from .models import Base
-from .repositories.orders_repo import insert_order
+from .db import engine
+from .models import Base, Order
+from .rabbitmq import start_consumer
+from .config import RABBIT_URL
 
-app = FastAPI()
+logging.basicConfig(level=logging.INFO)
 
-@app.on_event("startup")
-async def startup():
+async def main():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+    await start_consumer(RABBIT_URL)
 
-@app.post("/internal/orders")
-async def persist_order(order: InternalOrder, x_request_id: str | None = Header(default=None)):
-    async with SessionLocal() as session:
-        try:
-            await insert_order(session, order)
-            redis_client.set(order.order_id, "PERSISTED")
-            return {"status": "ok"}
 
-        except Exception as e:
-            redis_client.set(order.order_id, "FAILED")
-            return {
-                "status": "error",
-                "message": str(e)    
-            }
+
+if __name__ == "__main__":
+    asyncio.run(main())

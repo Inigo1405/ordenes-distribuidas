@@ -3,12 +3,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Datetime, Integer, String, Text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import DateTime, Integer, String, Text
+from sqlalchemy.orm import declarative_base, Mapped, mapped_column
 
 
-class Base:
-    pass
+Base = declarative_base()
 
 class Notification(Base):
     __tablename__ = "notifications"
@@ -20,6 +19,6 @@ class Notification(Base):
     message: Mapped[str] = mapped_column(Text, nullable=False)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        Datetime(timezone=True),
+        DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
     )

@@ -1,13 +1,17 @@
 from fastapi import FastAPI, Header
 from datetime import datetime, timezone
 import json
+import pika
 import uuid
 
 from .schemas import OrderCreate
 from .redis_client import redis_client
 from .services.writer_client import send_order
+from .services.rabbit import get_channel
 
 app = FastAPI()
+
+channel = get_channel()
 
 
 @app.get("/health")
@@ -29,6 +33,7 @@ async def create_order(order: OrderCreate, x_request_id: str | None = Header(def
     })
 
     payload = {
+        "request_id": request_id,
         "order_id": order_id,
         "customer": order.customer,
         "items": [i.dict() for i in order.items],
@@ -36,11 +41,17 @@ async def create_order(order: OrderCreate, x_request_id: str | None = Header(def
     }
 
     try:
-        await send_order(payload, request_id)
-        return {
-            "order_id": order_id,
-            "status": redis_client.get(order_id)
-        }
+        channel.basic_publish(
+            exchange="orders",
+            routing_key="order.created", # Topic key
+            body=json.dumps(payload),
+            properties=pika.BasicProperties(
+                delivery_mode=2,     # Mensaje persistente
+                content_type="application/json"
+            )
+        )
+        
+        return {"order_id": order_id, "status": redis_client.get(order_id)}
         
     except Exception as e:
         redis_client.set(order_id, "FAILED")
