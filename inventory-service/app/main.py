@@ -1,50 +1,93 @@
-import threading
+import asyncio
 import logging
+import json
+import pika
 
-from fastapi import FastAPI
-from sqlalchemy import select
-
-from .db import SessionLocal
+from .db import Session, db_init
 from .models import Product
-from .rabbitmq.consumer import start_consumer
+from .config import RABBIT_URL
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Inventory Service")
+def main():
+    asyncio.run(db_init())
+    logger.info("Sistema de Inventario operando!")
+    
+    params = pika.URLParameters(RABBIT_URL)
+    params.heartbeat = 120
+    connection = pika.BlockingConnection(params)
+    channel = connection.channel()
+    channel.exchange_declare(exchange="orders", exchange_type="topic", durable=True)
+    
+    result = channel.queue_declare(queue="inventory.queue", exclusive=True)
+
+    channel.queue_bind(exchange="orders", queue=result.method.queue, routing_key="order.created")
+    channel.basic_consume(
+        queue=result.method.queue,
+        on_message_callback=callback,
+        auto_ack=True
+    )
+
+    logger.info("Inventario esperando...")
+    channel.start_consuming()
 
 
-@app.on_event("startup")
-async def startup():
-    """Lanza el consumer de RabbitMQ en un hilo separado."""
-    thread = threading.Thread(target=start_consumer, daemon=True)
-    thread.start()
-    logger.info("Consumer de inventario iniciado en background thread")
+def callback(ch, method, properties, body):
+    order = json.loads(body)
+    order_id = order.get("order_id")
+    items = order.get("items", [])
+    routing_key = "order.stock_"
+
+    try:
+        success, reason = update_inventory(order_id, items)
+        if not success:
+            logger.warning(f"Orden {order_id} - {reason}")
+            event = {**order, "event": "STOCK_CREDITS_REJECTED", "reason": reason}
+            routing_key += "rejected"
+        else:
+            event = {**order, "event": "STOCK_CONFIRMED"}
+            logger.info(f"Orden {order_id} - {reason}")
+            routing_key += "confirmed"
+
+        ch.basic_publish(
+            exchange="orders",
+            routing_key=routing_key,
+            body=json.dumps(event).encode(),
+            properties=pika.BasicProperties(content_type="application/json")
+        )
+
+    except Exception as e:
+        logger.error(f"Error en la orden {order_id}: {e}")
 
 
-@app.get("/health")
-async def health():
-    return {"status": "ok", "service": "inventory-service"}
+def update_inventory(order_id, items):
+    with Session() as session:
+        for item in items:
+            sku = item["sku"]
+            qty = item.get("qty")
+            product = session.query(Product).filter_by(sku=sku).with_for_update().first()
+
+            if not product:
+                session.rollback()
+                reason =  f"Producto no encontrado: {sku}"
+                logger.warning(f"Orden {order_id} - {reason}")
+                return False, reason
+
+            elif product.stock < qty:
+                session.rollback()
+                reason = f"Stock insuficiente de: {sku}"
+                logger.warning(f"Orden {order_id} - {reason}")
+                return False, reason
+
+            else:
+                product.stock -= qty
+                logger.info(f"Stock actualizado para: {sku}")
+
+        session.commit()
+        return True, "Inventario actualizado correctamente"
 
 
-@app.get("/inventory")
-async def list_inventory():
-    """Lista el stock actual de todos los productos."""
-    async with SessionLocal() as session:
-        result = await session.execute(select(Product))
-        products = result.scalars().all()
-        return [
-            {"sku": p.sku, "name": p.name, "stock": p.stock}
-            for p in products
-        ]
-
-
-@app.get("/inventory/{sku}")
-async def get_stock(sku: str):
-    """Consulta el stock de un SKU específico."""
-    async with SessionLocal() as session:
-        result = await session.execute(select(Product).where(Product.sku == sku))
-        product = result.scalar()
-        if product is None:
-            return {"error": f"SKU '{sku}' no encontrado"}, 404
-        return {"sku": product.sku, "name": product.name, "stock": product.stock}
+if __name__ == "__main__":
+    main()
