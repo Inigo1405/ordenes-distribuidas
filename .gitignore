@@ -15,6 +15,10 @@ venv/
 .venv/
 env/
 
+.env.dev
+.env.staging
+.env.prod
+
 # IDE
 .vscode/
 .idea/

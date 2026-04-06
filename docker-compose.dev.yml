@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  # --- Base de datos ---
+  postgres:
+    ports:
+      - "5432:5432"
+
+
+  postgres-notifications:
+    ports:
+      - "5433:5432"
+
+
+  #  --- Caché de estado ---
+  redis:
+    ports:
+      - "6379:6379"
+
+
+  api-gateway:
+    ports:
+      - "8000:8000"
+    environment:
+      LOG_LEVEL: DEBUG
+
+
+  # --- Servicios del sistema ---
+  writer-service:
+    ports:
+      - "8001:8001"
+
+
+  inventory-service:
+    ports:
+      - "8002:8002"
+
+
+  notification-service:
+    ports:
+      - "8003:8003"
+
+
+  rabbitmq:
+    ports:
+      - "5672:5672"     # comunicación entre servicios
+      - "15672:15672"   # panel web
+
+
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+# docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up --build
