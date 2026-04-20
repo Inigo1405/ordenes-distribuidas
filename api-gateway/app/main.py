@@ -1,13 +1,16 @@
-from fastapi import FastAPI, Header
+from fastapi import FastAPI, Header, HTTPException
 from datetime import datetime, timezone
 import json
 import pika
 import uuid
+import httpx
 
 from .schemas import OrderCreate
 from .redis_client import redis_client
-from .services.writer_client import send_order
+from .services.auth_client import send_auth
 from .services.rabbit import get_channel
+from .config import AUTH_URL
+
 
 app = FastAPI()
 
@@ -80,3 +83,22 @@ async def get_order(order_id: str):
         "status": status,
         "data": order_data
     }
+
+
+@app.get("/auth/health")
+async def auth_health():
+    send_auth()
+    url = f"{AUTH_URL}/health"
+    try:
+        async with httpx.AsyncClient(timeout=1.0) as client:
+            r = await client.get(url)
+        r.raise_for_status()
+        return r.json()
+    
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"Auth service unreachable: {e}")
+
+
+@app.post("/login")
+async def auth_login():
+    return 

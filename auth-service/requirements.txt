@@ -1,0 +1,9 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+auth0-fastapi-api>=1.0.0b5
+sqlalchemy[asyncio]>=2,<3
+asyncpg>=0.29,<1
+redis[hiredis]>=5,<6
+python-dotenv>=1.0,<2
+PyJWT==2.8.0
+cryptography==42.0.5

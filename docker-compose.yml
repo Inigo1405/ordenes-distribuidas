@@ -67,7 +67,7 @@ services:
 
   auth-service:
     container_name: auth-service
-    build: ./auth
+    build: ./auth-service
     env_file: ${ENV_FILE:-.env.dev}
     restart: on-failure
     depends_on:
