@@ -5,7 +5,7 @@ import pika
 import uuid
 import httpx
 
-from .schemas import OrderCreate
+from .schemas import LoginRequest, LogoutRequest, SignupRequest, OrderCreate
 from .redis_client import redis_client
 from .services.auth_client import send_auth
 from .services.rabbit import get_channel
@@ -99,6 +99,51 @@ async def auth_health():
         raise HTTPException(status_code=503, detail=f"Auth service unreachable: {e}")
 
 
-@app.post("/login")
-async def auth_login():
-    return 
+@app.post("/auth/signup")
+async def auth_signup(data: SignupRequest):
+    url = f"{AUTH_URL}/signup"
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            r = await client.post(
+                url,
+                json=data.dict()
+            )
+        if r.status_code >= 400:
+            return {"error": r.json().get("detail", "Error en auth service"), "status_code": r.status_code}
+        return r.json()
+    
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"Auth service unreachable: {e}")
+
+
+@app.post("/auth/login")
+async def auth_login(data: LoginRequest):
+    url = f"{AUTH_URL}/login"
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            r = await client.post(
+                url,
+                json=data.dict()
+            )
+        r.raise_for_status()
+        return r.json()
+    
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"Auth service unreachable: {e}")
+
+
+@app.post("/auth/logout")
+async def auth_logout(data: LogoutRequest):
+    url = f"{AUTH_URL}/logout"
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            r = await client.post(
+                url,
+                json=data.dict()
+            )
+        r.raise_for_status()
+        return r.json()
+    
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"Auth service unreachable: {e}")
+    

@@ -6,6 +6,9 @@ REDIS_URL = os.getenv("REDIS_URL")
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = int(os.getenv("REDIS_PORT"))
 
-SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key")
-ALGORITHM = "HS256"
+
+PRIVATE_KEY = os.getenv("PRIVATE_KEY")
+PUBLIC_KEY = os.getenv("PUBLIC_KEY")
+
+ALGORITHM = "RS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
