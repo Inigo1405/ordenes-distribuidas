@@ -51,11 +51,11 @@ async def login(data: LoginRequest):
     async with Session() as session:  
       result = await session.execute(select(User).where(User.email == data.email))
       user = result.scalar_one_or_none()
-
-      if user is None or not verify_password(data.password, user.password):
+ 
+      if user is None or user.password != data.password:
         raise HTTPException(status_code=401, detail="Credenciales inválidas.")
-
-      access_token = create_access_token(data={"email": user.email, "name": user.name})
+ 
+      access_token = create_access_token(data={"sub": user.email, "email": user.email, "name": user.name, "role": user.role})
       redis_client.set(f"token:{access_token}", user.email, ex=ACCESS_TOKEN_EXPIRE_MINUTES * 60)
       
       return {
@@ -92,7 +92,8 @@ async def signup(data: SignupRequest):
       new_user = User(
         name=data.name,
         password=hash_password(data.password),
-        email=data.email
+        email=data.email,
+        role=data.role
       )
       session.add(new_user)
       await session.commit()
@@ -108,6 +109,16 @@ async def signup(data: SignupRequest):
   except Exception as e:
     logger.exception(f"Error en el endpoint de signup: {e}")
     raise HTTPException(status_code=500, detail="Error interno del servidor.")
+  
+@app.post("/internal/verify")
+def verify(token: str):
+  payload = verify_token(token)
+  return {
+    "sub": payload.get("sub"),
+    "email": payload.get("email"),
+    "name": payload.get("name"),
+    "role": payload.get("role"),
+  }
 
 
 @app.post("/internal/refresh")
