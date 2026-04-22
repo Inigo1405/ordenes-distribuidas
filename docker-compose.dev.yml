@@ -12,6 +12,11 @@ services:
       - "5433:5432"
 
 
+  postgres-users:
+    ports:
+      - "5434:5432"
+
+
   #  --- Caché de estado ---
   redis:
     ports:
@@ -39,6 +44,11 @@ services:
   notification-service:
     ports:
       - "8003:8003"
+
+
+  auth-service:
+    ports:
+      - "8004:8000"
 
 
   rabbitmq:
