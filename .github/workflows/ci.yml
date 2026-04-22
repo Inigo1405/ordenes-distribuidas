@@ -19,9 +19,9 @@ jobs:
         run: docker compose build
 
       - name: Start services 
-        run: | 
-          cp .env.example .env
-          docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env up --build -d
+        run: |
+          cp .env.example .env.dev
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.dev up --build -d
 
       - name: Wait for services to be healthy
         run: |
@@ -51,5 +51,7 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: docker compose down -v
-        
+        run: |
+          echo "Limpiando contenedores y volúmenes..."
+          docker compose down -v
+          
