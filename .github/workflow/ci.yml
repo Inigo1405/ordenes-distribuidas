@@ -20,8 +20,8 @@ jobs:
 
       - name: Start services 
         run: | 
-            cp .env.example .env
-            docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env up --build -d
+          cp .env.example .env
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env up --build -d
 
       - name: Wait for services to be healthy
         run: |
