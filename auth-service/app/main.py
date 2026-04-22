@@ -55,13 +55,14 @@ async def login(data: LoginRequest):
       if user is None or not verify_password(data.password, user.password):
         raise HTTPException(status_code=401, detail="Credenciales inválidas.")
 
-      access_token = create_access_token(data={"user": user.email, "name": user.name})
+      access_token = create_access_token(data={"email": user.email, "name": user.name})
       redis_client.set(f"token:{access_token}", user.email, ex=ACCESS_TOKEN_EXPIRE_MINUTES * 60)
       
       return {
         "message": "Login exitoso.",
-        "user": {"email": user.email, "name": user.name},
-        "access_token": access_token, "token_type": "bearer"
+        "email": user.email,
+        "access_token": access_token,
+        "token_type": "bearer"
       }
       
   except HTTPException:
@@ -73,8 +74,8 @@ async def login(data: LoginRequest):
 
 
 @app.post("/internal/logout")
-async def logout(data: LogoutRequest):
-  
+async def logout(token: LogoutRequest):
+  redis_client.delete(f"token:{token}")
   return {"message": "Logout exitoso."}
 
 
@@ -123,7 +124,8 @@ def refresh(token):
 
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
+# --- TOKEN ---
+def create_access_token(data: dict):
   to_encode = data.copy()
   
   expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))

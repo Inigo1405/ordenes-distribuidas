@@ -7,6 +7,7 @@ from .models import Base, User
 from .config import DATABASE_URL
 
 
+
 logger = logging.getLogger(__name__)
 
 engine = create_async_engine(DATABASE_URL)
