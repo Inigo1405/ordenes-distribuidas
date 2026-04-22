@@ -15,7 +15,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 
 from .models import User
-from .schemas import LoginRequest, LogoutRequest, SignupRequest
+from .schemas import LoginRequest, LogoutRequest, SignupRequest, RefreshRequest
 from .db import Session, db_init
 from .redis_client import redis_client
 from .config import ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, PRIVATE_KEY, PUBLIC_KEY
@@ -157,6 +157,7 @@ async def signup(data: SignupRequest):
     logger.exception(f"Error en el endpoint de signup: {e}")
     raise HTTPException(status_code=500, detail="Error interno del servidor.")
   
+  
 @app.post("/internal/verify")
 def verify(token: str):
   payload = verify_token(token)
@@ -168,9 +169,8 @@ def verify(token: str):
   }
 
 
-
 @app.post("/internal/refresh")
-def refresh_access_token(refresh_token: str):
+def refresh_access_token(refresh_token: RefreshRequest):
   try:
     payload = jwt.decode(refresh_token, PUBLIC_KEY, algorithms=[ALGORITHM])
 
