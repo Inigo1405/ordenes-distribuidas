@@ -11,4 +11,5 @@ class LoginRequest(BaseModel):
   password: str
 
 class LogoutRequest(BaseModel):
+  token: str
   refresh_token: str

@@ -17,4 +17,4 @@ with open(BASE_DIR / "public_key.pem", "r") as f:
     PUBLIC_KEY = f.read()
 
 ALGORITHM = "RS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 15
