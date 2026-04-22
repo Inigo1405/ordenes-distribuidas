@@ -1,6 +1,9 @@
 import jwt
+import os
+import hmac
 import asyncio
 import logging
+import hashlib
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
@@ -49,7 +52,7 @@ async def login(data: LoginRequest):
       result = await session.execute(select(User).where(User.email == data.email))
       user = result.scalar_one_or_none()
 
-      if user is None or user.password != data.password:
+      if user is None or not verify_password(data.password, user.password):
         raise HTTPException(status_code=401, detail="Credenciales inválidas.")
 
       access_token = create_access_token(data={"user": user.email, "name": user.name})
@@ -87,7 +90,7 @@ async def signup(data: SignupRequest):
 
       new_user = User(
         name=data.name,
-        password=data.password,
+        password=hash_password(data.password),
         email=data.email
       )
       session.add(new_user)
@@ -150,7 +153,28 @@ def verify_token(token: str = Depends(oauth2_scheme)):
       headers={"WWW-Authenticate": "Bearer"},
     )
   
+def hash_password(plain: str) -> str:
+  salt = os.urandom(32)
+  key = hashlib.pbkdf2_hmac(
+    "sha256",
+    plain.encode("utf-8"),
+    salt, 
+    iterations=260_000
+  )
+  # Guardamos salt + hash juntos en hex para almacenarlos en la DB
+  return salt.hex() + ":" + key.hex()
 
+def verify_password(plain: str, hashed: str) -> bool:
+  salt_hex, key_hex = hashed.split(":")
+  salt = bytes.fromhex(salt_hex)
+  key = hashlib.pbkdf2_hmac(
+    "sha256",
+    plain.encode("utf-8"),
+    salt,
+    iterations = 260_000
+  )
+  # compare_digest evita timing attacks
+  return hmac.compare_digest(key.hex(), key_hex)
 
 if __name__ == "__main__":
   asyncio.run(db_init())
