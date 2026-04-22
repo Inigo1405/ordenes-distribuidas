@@ -1,53 +1,55 @@
-name: CI  #nombre del workflow
-on: #Eventos que disparan el workflow
-    push:
-        branches: [ main ]
-    pull_request:
-        branches: [ main ]
+name: CI                  # Nombre del workflow
+on: 
+  push:
+    branches: [ main ]
 
+  pull_request:
+    branches: [ main ]
 
-jobs: #Unidad de trabajo
-    build-and-test: #pasos para poder ejecutar, nombre del job
-        runs-on: ubuntu-latest #Runner (maquina virual) donde se ejecutara el job
-        timeout-minutes: 10
+jobs:
+  build-and-test:         # Nombre del Job
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
 
-        steps: 
-            - name: Checout code
-            -   uses: actions/checkout@v4 # Paso 1: Clonar el repositorio
-            
-            - name: Build all services
-            -   run: docker compose build # Paso 2: Ejecutar un comando de ejemplo
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: Start services
-                run: 
-                    cp .env.example .env
-                    docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env up --build -d
-                    
-            - name: Wait for services to be healthy
-                run: |
-                    echo "Esperando a que los servicios jalen..."
-                    timeout 120 bash -c 
-                        until docker compose ps --format json | python3 -c "
-                        import sys, json 
-                        services = [json.load(line) for line in sys.stdin]
-                        unhealthy = [s[\"Name\"] for s in services if s.get(\"Health\") not in (\"healthy\", \"\")]
-                        if unhealthy:
-                            print(f\"Esperando: {unhealthy}\")
-                            sys.exit(1)
-                        print(\"Todos los servicios estan saludables.\")
-                        "; do
-                            sleep 5
-                        done
-                
-            - name: Run integration tests
-            run: |
-                chmod +x ./scripts/test.sh
-                ./scripts/test.sh
-            
-            - name: Show logs on failure
-            if: failure()
-                run: docker compose logs --tail=100
+      - name: build all services
+        run: docker compose build
 
-            - name: Cleanup
-            if: always()
-                run: docker compose down -v
+      - name: Start services 
+        run: | 
+          cp .env.example .env
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env up --build -d
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Esperando a que los servicios enciendan..."
+          timeout 120 bash -c '
+            until docker compose ps --format json | python3 -c "
+            import sys, json
+            services = [json.loads(line) for line in sys.stdin]
+            unhealthy = [s[\"Name\"] for s in services if s.get(\"Health\") not in [\"healthy\", \"\"]]
+            if unhealthy:
+              print(f\"Esperando: {unhealthy}\")
+              sys.exit(1)
+            print(\"Todos los servicios están saludables.\")
+            "; do
+              sleep 5
+            done
+          '
+
+      - name: Run integration tests
+        run: |
+          chmod +x ./scripts/test.sh
+          ./scripts/test.sh
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs --tail=100
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
+        
