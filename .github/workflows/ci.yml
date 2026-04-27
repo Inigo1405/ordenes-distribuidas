@@ -51,4 +51,6 @@ jobs:
       - name: Linter check
         run: |
           echo "Ejecutando linters..."
+          pip install ruff
+          ruff check .
           
