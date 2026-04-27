@@ -55,3 +55,7 @@ jobs:
           echo "Limpiando contenedores y volúmenes..."
           docker compose down -v
           
+      - name: Linter check
+        run: |
+          echo "Ejecutando linters..."
+          ruff check .
