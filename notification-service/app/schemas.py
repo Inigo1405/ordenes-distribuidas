@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 
+
 class InternalNotification(BaseModel):
     order_id: str
     customer: str

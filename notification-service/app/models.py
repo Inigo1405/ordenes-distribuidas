@@ -1,4 +1,5 @@
 """Modelos ORM"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -8,6 +9,7 @@ from sqlalchemy.orm import declarative_base, Mapped, mapped_column
 
 
 Base = declarative_base()
+
 
 class Notification(Base):
     __tablename__ = "notifications"

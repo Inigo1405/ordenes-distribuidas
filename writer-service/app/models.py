@@ -2,6 +2,8 @@ from sqlalchemy import Column, String, JSON, DateTime
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
+
+
 class Order(Base):
     """Modelo ORM (Order)"""
 

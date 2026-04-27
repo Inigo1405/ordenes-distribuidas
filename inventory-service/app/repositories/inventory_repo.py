@@ -22,7 +22,7 @@ async def deduct_stock(session: AsyncSession, sku: str, qty: int) -> dict:
         return {
             "ok": False,
             "sku": sku,
-            "reason": f"Stock insuficiente: disponible={product.stock}, solicitado={qty}"
+            "reason": f"Stock insuficiente: disponible={product.stock}, solicitado={qty}",
         }
 
     product.stock -= qty
