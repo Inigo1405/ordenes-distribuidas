@@ -7,6 +7,7 @@ Base = declarative_base()
 
 class Product(Base):
     """Producto con su stock disponible."""
+
     __tablename__ = "products"
 
     sku = Column(String(50), primary_key=True)
